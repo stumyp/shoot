@@ -1,20 +1,20 @@
-shoot
+shoot-s3
 =====
 
-**Script for taking sreenshot of selected area and upload it to imgur.com**
+**Script for taking sreenshot of selected area and upload it to S3**
 
 **Implemented in:** bash
 
 **Dependencies:**
-* curl
+* awscli
+* date
 * scrot
 * xclip
 * libnotify-bin
 
 **License:** GNU GPL v3
 
-Derived from http://sirupsen.com/static/misc/shoot by Sirupsen @ http://sirupsen.dk
-
+Derived from https://github.com/kodx/shoot
 
 Installation:
-> curl https://raw.github.com/kodx/shoot/master/shoot > ~/bin/shoot && chmod 755 ~/bin/shoot
+> https://raw.githubusercontent.com/stumyp/shoot/master/shoot-s3  ~/bin/shoot-s3 && chmod 755 ~/bin/shoot-s3
