@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# File: shoot
-# Author: Yegor Bayev <baev.egor (at) gmail.com>
-# Derived from http://sirupsen.com/static/misc/shoot by Sirupsen @ http://sirupsen.dk
+#
+# File: shoot-s3
+# Author: Tim Sattarov https://github.com/stumyp
+# Inspired by https://github.com/kodx/shoot
 #
 # Description: Very simple script to make you
 # select a region of your screen, which will be captured, and
-# then uploaded. The URL will then be injected into your clipboard.
+# then uploaded to S3 bucket. The URL will then be injected into your clipboard.
 #
-# Dependencies: curl, scrot, xclip, libnotify-bin
+# Dependencies: awscli, scrot, xclip, libnotify-bin
 #
 # License:
 #
-# Copyright 2013 Yegor Bayev <baev.egor (at) gmail.com>
+# Copyright 2017 Tim Sattarov <stimur at gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,9 +27,59 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see [http://www.gnu.org/licenses/].
 
-CLIENT_ID="9657b96ca0b7f38"
+usage(){
+	echo "Usage: $0 -b <S3 bucket name> -P <path within S3 bucket> -r <AWS region> -p <AWS profile> -f <Path to screenshots> -c <yes|no>" 
+	echo -e "\t -b Name of S3 bucket  !!!no  slashes!!!. Example: my-shared-bucket"
+	echo -e "\t -b Path on S3 bucket where to save the screenshots, !!!no no leading or traling slash!!!. Example: screenshots"
+	echo -e "\t -r Name of AWS region. Example: us-east-1, ap-west-2, etc."
+	echo -e "\t -p Name of profile for awscli, configured in ~/.aws/credentials"
+	echo -e "\t -f Path to folder where screenshots will be created"
+	echo -e "\t -c Clean or keep the screenshots (yes or no)"
+	exit 1
 
-CMDLIST="scrot xclip curl"
+}
+
+while getopts "b:P:r:p:f:c:" arg ; do
+	case $arg in
+		b)
+			BUCKET=$OPTARG
+			;;
+		P)
+			S3PATH=$OPTARG
+			;;
+		r)
+			AWS_REGION=$OPTARG
+			;;
+		p)
+			AWS_PROFILE=$OPTARG
+			;;
+		f)
+			SAVETO=$OPTARG
+			;;
+		c)
+			CLEAN=$OPTARG
+			;;
+	esac
+done
+
+( [ -z "$BUCKET" ] || [ -z "$S3PATH" ] || [ -z "$AWS_REGION" ] || [ -z "$AWS_PROFILE" ] || [ -z "$SAVETO" ] || [ -z "$CLEAN" ] ) && usage
+
+uploadImage() {
+	LOCAL_PATH=$1
+	LOCAL_FILE="$(basename ${LOCAL_PATH})"
+	S3URI="${S3PATH}/${LOCAL_FILE}"
+	echo $LOCAL_PATH
+	echo $LOCAL_FILE
+	echo $S3URI
+	aws --region ${AWS_REGION} --profile ${AWS_PROFILE} s3 cp $LOCAL_PATH s3://${BUCKET}/${S3URI}
+	if [ "$?" -eq "1" ] ; then
+		echo "Couldn't upload image: $?"
+	else 
+		export LINK="http://${BUCKET}.s3.amazonaws.com/${S3URI}"
+	fi
+}
+
+CMDLIST="scrot xclip aws date"
 for e in $CMDLIST; do
     if [ -z "$(which $e)" ]; then
         echo "$e not installed, quit."
@@ -36,17 +87,11 @@ for e in $CMDLIST; do
     fi
 done
 
-SHOTPATH="$HOME/shot.png"
-
-function uploadImage {
-    curl -H "Authorization: Client-ID $CLIENT_ID" -H "Expect: " -F "image=@$1" https://api.imgur.com/3/image | sed -E 's/.*"link":"([^"]+)".*/\1/' | sed "s|\\\\/|/|g"
-}
-
+SHOTPATH="$SAVETO/$(date +%Y-%m-%d-%H-%M-%S).png"
 if scrot -s $SHOTPATH; then
-    LINK=$(uploadImage $SHOTPATH) 
-    echo $LINK | xclip -selection c
-    rm $SHOTPATH
+    uploadImage $SHOTPATH
+    echo -n $LINK | xclip -selection c
+    [ "yes" == ${CLEAN} ] && rm $SHOTPATH
     notify-send -i go-down "Screenshot on $LINK"
 fi
 
-# shoot ends here
