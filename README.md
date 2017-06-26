@@ -17,7 +17,9 @@ shoot-s3
 Derived from https://github.com/kodx/shoot
 
 **Installation:**
-> https://raw.githubusercontent.com/stumyp/shoot/master/shoot-s3  ~/bin/shoot-s3 && chmod 755 ~/bin/shoot-s3
+```
+wget -O ~/bin/shoot-s3 https://raw.githubusercontent.com/stumyp/shoot/master/shoot-s3  && chmod 755 ~/bin/shoot-s3
+```
 
 **Usage:**
 ```
