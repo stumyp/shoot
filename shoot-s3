@@ -27,6 +27,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see [http://www.gnu.org/licenses/].
 
+set -e 
 usage(){
 	echo "Usage: $0 -b <S3 bucket name> -P <path within S3 bucket> -r <AWS region> -p <AWS profile> -f <Path to screenshots> -c <yes|no>" 
 	echo -e "\t -b Name of S3 bucket  !!!no  slashes!!!. Example: my-shared-bucket"
@@ -62,7 +63,11 @@ while getopts "b:P:r:p:f:c:" arg ; do
 	esac
 done
 
-( [ -z "$BUCKET" ] || [ -z "$S3PATH" ] || [ -z "$AWS_REGION" ] || [ -z "$AWS_PROFILE" ] || [ -z "$SAVETO" ] || [ -z "$CLEAN" ] ) && usage
+( [ -z "$BUCKET" ] || [ -z "$S3PATH" ] || [ -z "$AWS_REGION" ] ||  [ -z "$SAVETO" ] || [ -z "$CLEAN" ] ) && usage
+
+AWS=`which aws`
+[ -n "${AWS_PROFILE}" ] && AWS="${AWS} --profile ${AWS_PROFILE}"
+[ -n "${AWS_REGION}" ] && AWS="${AWS} --region ${AWS_REGION}"
 
 uploadImage() {
 	LOCAL_PATH=$1
@@ -71,7 +76,7 @@ uploadImage() {
 	echo $LOCAL_PATH
 	echo $LOCAL_FILE
 	echo $S3URI
-	aws --region ${AWS_REGION} --profile ${AWS_PROFILE} s3 cp $LOCAL_PATH s3://${BUCKET}/${S3URI}
+	${AWS} s3 cp ${LOCAL_PATH} s3://${BUCKET}/${S3URI}
 	if [ "$?" -eq "1" ] ; then
 		echo "Couldn't upload image: $?"
 	else 
@@ -79,7 +84,8 @@ uploadImage() {
 	fi
 }
 
-CMDLIST="scrot xclip aws date"
+#CMDLIST="shutter xclip aws date"
+CMDLIST="spectacle xclip aws date"
 for e in $CMDLIST; do
     if [ -z "$(which $e)" ]; then
         echo "$e not installed, quit."
@@ -88,10 +94,13 @@ for e in $CMDLIST; do
 done
 
 SHOTPATH="$SAVETO/$(date +%Y-%m-%d-%H-%M-%S).png"
-if scrot -s $SHOTPATH; then
+#if shutter -n -s -e -o $SHOTPATH; then
+spectacle -rbo $SHOTPATH
+if [ -e $SHOTPATH ]  then
     uploadImage $SHOTPATH
-    echo -n $LINK | xclip -selection c
+    echo -n $LINK | xclip -selection clipboard
     [ "yes" == ${CLEAN} ] && rm $SHOTPATH
     notify-send -i go-down "Screenshot on $LINK"
 fi
 
+exit 0
