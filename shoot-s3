@@ -96,7 +96,7 @@ done
 SHOTPATH="$SAVETO/$(date +%Y-%m-%d-%H-%M-%S).png"
 #if shutter -n -s -e -o $SHOTPATH; then
 spectacle -rbo $SHOTPATH
-if [ -e $SHOTPATH ]  then
+if [ -e $SHOTPATH ] ; then
     uploadImage $SHOTPATH
     echo -n $LINK | xclip -selection clipboard
     [ "yes" == ${CLEAN} ] && rm $SHOTPATH
